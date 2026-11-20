@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#153e42">
+    <title>Administrar eventos | Exbecarios Japón Costa Rica</title>
+    <link rel="icon" href="img/icono.jpg" type="image/jpeg">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="admin.css">
+    <script type="module" src="js/admin.js"></script>
+  </head>
+  <body class="admin-page">
+    <header class="site-header admin-header">
+      <a class="brand" href="index.html">
+        <img src="img/icono.jpg" alt="" width="54" height="54">
+        <span class="brand-name">Exbecarios<span>Japón · Costa Rica</span></span>
+      </a>
+      <a class="header-contact" href="index.html">← Volver a la página</a>
+    </header>
+    <main class="admin-main">
+      <div class="admin-heading">
+        <p class="eyebrow">Panel privado</p>
+        <h1>Administrar eventos</h1>
+        <p>Inicia sesión con la cuenta autorizada para publicar las actividades de la asociación.</p>
+      </div>
+      <p id="admin-status" class="admin-status" role="status" aria-live="polite"></p>
+      <section id="login-panel" class="admin-card">
+        <h2>Iniciar sesión</h2>
+        <form id="login-form">
+          <label for="email">Correo electrónico</label>
+          <input id="email" name="email" type="email" autocomplete="username" required>
+          <label for="password">Contraseña</label>
+          <input id="password" name="password" type="password" autocomplete="current-password" required>
+          <button class="button admin-submit" type="submit">Entrar <span aria-hidden="true">→</span></button>
+        </form>
+        <p class="admin-hint">El alta de la cuenta administradora se realiza de forma privada en Firebase Authentication. No hay registro público.</p>
+      </section>
+
+      <section id="manager-panel" class="admin-card" hidden>
+        <div class="manager-topline">
+          <h2>Agenda</h2>
+          <button id="signout-button" class="text-button" type="button">Cerrar sesión</button>
+        </div>
+        <form id="event-form">
+          <input id="event-id" name="eventId" type="hidden">
+          <label for="event-title">Nombre del evento</label>
+          <input id="event-title" name="title" type="text" maxlength="100" required>
+          <label for="event-date">Fecha y hora (hora de Costa Rica)</label>
+          <input id="event-date" name="date" type="datetime-local" required>
+          <label for="event-location">Lugar (opcional)</label>
+          <input id="event-location" name="location" type="text" maxlength="120">
+          <label for="event-description">Descripción</label>
+          <textarea id="event-description" name="description" rows="4" maxlength="1500" required></textarea>
+          <div class="form-actions">
+            <button id="save-event" class="button admin-submit" type="submit">Publicar evento <span aria-hidden="true">→</span></button>
+            <button id="cancel-edit" class="text-button" type="button" hidden>Cancelar edición</button>
+          </div>
+        </form>
+        <div class="manager-list-heading">
+          <h3>Eventos publicados</h3>
+          <p>Se muestran hasta 50 eventos recientes.</p>
+        </div>
+        <div id="admin-events" class="admin-events"></div>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <a class="footer-brand" href="index.html">Exbecarios Japón · Costa Rica</a>
+      <span>Acceso restringido al equipo administrador.</span>
+    </footer>
+  </body>
+</html>
