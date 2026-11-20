@@ -10,12 +10,16 @@
 .admin-card form { display: grid; gap: 10px; }
 .admin-card label { margin-top: 8px; color: #425b5a; font-size: 16px; font-weight: 650; }
 .admin-card input, .admin-card textarea { width: 100%; padding: 13px; border: 1px solid #cdd5ce; border-radius: 0; color: var(--ink); background: #fff; font: inherit; font-size: 18px; }
+.admin-card input[type="file"] { padding: 8px; font-size: 16px; }
 .admin-card textarea { resize: vertical; }
 .admin-card input:focus, .admin-card textarea:focus { border-color: #63877f; outline: 2px solid rgba(99, 135, 127, .2); }
 .admin-submit { justify-self: start; margin-top: 11px; color: #fff; background: var(--ink); cursor: pointer; }
 .admin-submit:hover { background: #264f4f; }
 .admin-submit:disabled { cursor: wait; opacity: .6; }
 .admin-hint { margin: 20px 0 0; color: var(--muted); font-size: 16px; line-height: 1.6; }
+.admin-card #image-hint { margin: 0; font-size: 15px; }
+.admin-image-preview { display: grid; justify-items: start; gap: 8px; }
+.admin-image-preview img { display: block; width: min(100%, 480px); max-height: 300px; border: 1px solid var(--line); background: #f3f2ed; object-fit: contain; }
 .admin-status { min-height: 22px; margin: 0 0 14px; color: #607c70; font-size: 16px; }
 .admin-status.is-error { color: #9c3935; }
 .manager-topline { display: flex; align-items: center; justify-content: space-between; gap: 15px; padding-bottom: 17px; }
@@ -28,6 +32,7 @@
 .admin-events { display: grid; gap: 9px; margin-top: 18px; }
 .admin-event-row { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 13px 15px; border: 1px solid var(--line); }
 .admin-event-copy { min-width: 0; }
+.admin-event-thumbnail { display: block; width: min(100%, 180px); aspect-ratio: 16 / 9; margin-bottom: 8px; object-fit: cover; background: #f3f2ed; }
 .admin-event-copy strong { display: block; overflow: hidden; font-family: var(--serif); font-size: 18px; font-weight: 400; text-overflow: ellipsis; white-space: nowrap; }
 .admin-event-copy span { display: block; margin-top: 5px; color: var(--muted); font-size: 15px; }
 .admin-event-actions { display: flex; flex-shrink: 0; gap: 12px; }

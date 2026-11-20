@@ -156,6 +156,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid #d7836d; outline-offs
 .events-status.is-empty { padding: 27px 28px; border: 1px solid var(--line); background: rgba(255, 254, 250, .55); }
 .events-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
 .event-card { min-height: 218px; padding: 24px; border: 1px solid var(--line); background: var(--white); }
+.event-image { display: block; width: 100%; aspect-ratio: 16 / 9; margin-bottom: 18px; object-fit: cover; background: #e8eee8; }
 .event-date { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; color: #64817b; font-size: 15px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
 .event-date::before { width: 17px; height: 1px; background: var(--coral); content: ""; }
 .event-card h3 { margin: 0 0 11px; font-family: var(--serif); font-size: 25px; font-weight: 400; line-height: 1.25; }

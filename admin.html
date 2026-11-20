@@ -50,6 +50,13 @@
           <input id="event-date" name="date" type="datetime-local" required>
           <label for="event-location">Lugar (opcional)</label>
           <input id="event-location" name="location" type="text" maxlength="120">
+          <label for="event-image">Foto (opcional)</label>
+          <input id="event-image" name="image" type="file" accept="image/jpeg,image/png,image/webp">
+          <p id="image-hint" class="admin-hint">Se optimiza automáticamente y se limita a 150 KB; se eliminan los metadatos.</p>
+          <div id="image-preview-wrap" class="admin-image-preview" hidden>
+            <img id="image-preview" alt="Vista previa de la foto del evento">
+            <button id="remove-image" class="text-button" type="button">Quitar foto</button>
+          </div>
           <label for="event-description">Descripción</label>
           <textarea id="event-description" name="description" rows="4" maxlength="1500" required></textarea>
           <div class="form-actions">
@@ -59,7 +66,7 @@
         </form>
         <div class="manager-list-heading">
           <h3>Eventos publicados</h3>
-          <p>Se muestran hasta 50 eventos recientes.</p>
+          <p>Máximo 6 publicaciones. Elimina una para agregar otra.</p>
         </div>
         <div id="admin-events" class="admin-events"></div>
       </section>

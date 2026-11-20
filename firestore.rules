@@ -11,7 +11,7 @@ service cloud.firestore {
           "title", "description", "location", "date", "createdAt", "updatedAt"
         ])
         && request.resource.data.keys().hasOnly([
-          "title", "description", "location", "date", "createdAt", "updatedAt"
+          "title", "description", "location", "date", "createdAt", "updatedAt", "imageData"
         ])
         && request.resource.data.title is string
         && request.resource.data.title.size() > 0
@@ -23,7 +23,13 @@ service cloud.firestore {
         && request.resource.data.location.size() <= 120
         && request.resource.data.date is timestamp
         && request.resource.data.createdAt is timestamp
-        && request.resource.data.updatedAt is timestamp;
+        && request.resource.data.updatedAt is timestamp
+        && (!request.resource.data.keys().hasAny(["imageData"])
+          || (
+            request.resource.data.imageData is string
+            && request.resource.data.imageData.size() <= 210000
+            && request.resource.data.imageData.matches("^data:image/jpeg;base64,[A-Za-z0-9+/]+={0,2}$")
+          ));
     }
 
     match /events/{eventId} {

@@ -1,7 +1,8 @@
 import { isFirebaseConfigured, getFirebaseServices } from "./firebase.js";
 
-const CACHE_DURATION_MS = 5 * 60 * 1000;
-const MAX_PUBLIC_EVENTS = 12;
+const CACHE_DURATION_MS = 12 * 60 * 60 * 1000;
+const MAX_PUBLIC_EVENTS = 6;
+const MAX_IMAGE_DATA_LENGTH = 210000;
 const eventsStatus = document.querySelector("#events-status");
 const eventsList = document.querySelector("#events-list");
 
@@ -11,7 +12,7 @@ function setStatus(message, state = "") {
 }
 
 function cacheKey(projectId) {
-  return `exbecarios-events-v1:${projectId}`;
+  return `exbecarios-events-v2:${projectId}`;
 }
 
 function readCache(key) {
@@ -57,6 +58,16 @@ function renderEvents(events) {
   for (const event of events) {
     const card = document.createElement("article");
     card.className = "event-card";
+
+    if (event.imageData) {
+      const image = document.createElement("img");
+      image.className = "event-image";
+      image.src = event.imageData;
+      image.alt = `Foto de ${event.title}`;
+      image.loading = "lazy";
+      image.decoding = "async";
+      card.append(image);
+    }
 
     const date = document.createElement("p");
     date.className = "event-date";
@@ -104,11 +115,19 @@ async function fetchEvents(db) {
     if (!data.date?.toDate || typeof data.title !== "string" || typeof data.description !== "string") {
       throw new Error(`El evento ${eventDoc.id} tiene datos incompletos.`);
     }
+    if (data.imageData !== undefined && (
+      typeof data.imageData !== "string"
+      || data.imageData.length > MAX_IMAGE_DATA_LENGTH
+      || !data.imageData.startsWith("data:image/jpeg;base64,")
+    )) {
+      throw new Error(`La foto del evento ${eventDoc.id} tiene un formato inválido.`);
+    }
     return {
       title: data.title,
       description: data.description,
       location: typeof data.location === "string" ? data.location : "",
       date: data.date.toDate().toISOString(),
+      imageData: data.imageData || "",
     };
   });
   writeCache(key, events);

@@ -19,9 +19,11 @@ La configuración web de Firebase no es un secreto: el acceso se protege con las
 
 ## Lecturas y cuotas
 
-La agenda pública no usa listeners en tiempo real ni consultas repetidas. Hace una consulta con límite de 12 eventos futuros y guarda el resultado en `localStorage` durante cinco minutos. Así, una visita normal hace como máximo una lectura inicial por evento en una ventana de caché, además de las lecturas que Firebase facture por documento. App Check, si se configura, ayuda a reducir tráfico automatizado, pero ni la caché ni App Check establecen un tope diario estricto para visitantes legítimos.
+La agenda pública no usa listeners en tiempo real ni consultas repetidas. Consulta hasta seis eventos futuros y guarda el resultado en `localStorage` durante 12 horas por navegador. En cada caché vencida, la consulta lee como máximo seis documentos. La caché no es global: otro navegador, dispositivo o almacenamiento borrado hará otra consulta, por lo que no se puede garantizar que nunca se agote la cuota.
 
-El panel privado consulta hasta 50 eventos solo al iniciar sesión y después de guardar o eliminar. No se crean usuarios ni documentos al visitar la página pública.
+El panel privado permite hasta seis publicaciones y consulta como máximo siete documentos al iniciar sesión y después de guardar o eliminar. La séptima publicación se bloquea hasta que se elimine una. El límite se aplica en el panel; las reglas de Firestore siguen protegiendo quién puede escribir, pero no pueden contar por sí solas todos los documentos de la colección.
+
+Cada publicación puede tener una foto. El navegador la reencoda como JPEG, elimina los metadatos y la limita a 150 KB antes de guardarla en el mismo documento de Firestore. Esto evita Cloud Storage para Firebase, que requiere el plan Blaze; a cambio, las imágenes cuentan como datos descargados de Firestore. Seis fotos al máximo pueden sumar aproximadamente 1,2 MB por consulta sin caché. El límite gratuito de Firestore incluye 50.000 lecturas diarias y 10 GiB de transferencia saliente mensual; el tráfico real puede superar esos límites. App Check, si se configura, ayuda a reducir tráfico automatizado, pero no establece un tope estricto.
 
 ## Publicar
 

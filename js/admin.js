@@ -10,15 +10,134 @@ const eventList = document.querySelector("#admin-events");
 const cancelEdit = document.querySelector("#cancel-edit");
 const saveButton = document.querySelector("#save-event");
 const signoutButton = document.querySelector("#signout-button");
-const MAX_ADMIN_EVENTS = 50;
+const eventImageInput = document.querySelector("#event-image");
+const imageHint = document.querySelector("#image-hint");
+const imagePreviewWrap = document.querySelector("#image-preview-wrap");
+const imagePreview = document.querySelector("#image-preview");
+const removeImageButton = document.querySelector("#remove-image");
+const MAX_ADMIN_EVENTS = 6;
+const ADMIN_EVENTS_READ_LIMIT = MAX_ADMIN_EVENTS + 1;
+const MAX_INPUT_IMAGE_BYTES = 20 * 1024 * 1024;
+const MAX_EVENT_IMAGE_BYTES = 150 * 1024;
+const MAX_IMAGE_DATA_LENGTH = 210000;
+const MAX_EVENT_IMAGE_DIMENSION = 1600;
+const DEFAULT_IMAGE_HINT = "Se optimiza automáticamente y se limita a 150 KB; se eliminan los metadatos.";
 const ADMIN_USERNAME = "ADMIN345";
 const ADMIN_EMAIL = "exbecarios.japon.cr@gmail.com";
 let services;
 let authObserver;
+let publishedEventCount = 0;
+let adminEventsLoaded = false;
+let currentImageData = "";
+let imageWasRemoved = false;
+let imageSelectionId = 0;
+let imageProcessing = Promise.resolve("");
 
 function setStatus(message, isError = false) {
   status.textContent = message;
   status.classList.toggle("is-error", isError);
+}
+
+function showImagePreview(imageData) {
+  if (imageData) {
+    imagePreview.src = imageData;
+    imagePreviewWrap.hidden = false;
+    return;
+  }
+  imagePreview.removeAttribute("src");
+  imagePreviewWrap.hidden = true;
+}
+
+function canvasToJpegBlob(canvas, quality) {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) {
+        resolve(blob);
+        return;
+      }
+      reject(new Error("No se pudo optimizar la foto."));
+    }, "image/jpeg", quality);
+  });
+}
+
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        resolve(reader.result);
+        return;
+      }
+      reject(new Error("No se pudo preparar la foto optimizada."));
+    };
+    reader.onerror = () => reject(reader.error || new Error("No se pudo leer la foto optimizada."));
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function compressEventImage(file) {
+  if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+    throw new Error("Elige una imagen JPG, PNG o WebP.");
+  }
+  if (file.size > MAX_INPUT_IMAGE_BYTES) {
+    throw new Error("La foto original debe pesar menos de 20 MB.");
+  }
+
+  let bitmap;
+  try {
+    bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+  } catch (error) {
+    throw new Error("No se pudo abrir la foto. Prueba con otra imagen.");
+  }
+
+  try {
+    const initialScale = Math.min(1, MAX_EVENT_IMAGE_DIMENSION / Math.max(bitmap.width, bitmap.height));
+    let width = Math.max(1, Math.round(bitmap.width * initialScale));
+    let height = Math.max(1, Math.round(bitmap.height * initialScale));
+    let quality = 0.86;
+
+    while (true) {
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const context = canvas.getContext("2d");
+      if (!context) {
+        throw new Error("El navegador no pudo preparar la foto.");
+      }
+      context.fillStyle = "#ffffff";
+      context.fillRect(0, 0, width, height);
+      context.drawImage(bitmap, 0, 0, width, height);
+
+      const blob = await canvasToJpegBlob(canvas, quality);
+      if (blob.size <= MAX_EVENT_IMAGE_BYTES) {
+        return await blobToDataUrl(blob);
+      }
+
+      if (quality > 0.68) {
+        quality = Math.max(0.68, quality - 0.06);
+        continue;
+      }
+      if (Math.max(width, height) <= 640) {
+        throw new Error("No se pudo reducir esta foto a 150 KB manteniendo una calidad visual adecuada.");
+      }
+
+      width = Math.max(1, Math.round(width * 0.85));
+      height = Math.max(1, Math.round(height * 0.85));
+      quality = 0.82;
+    }
+  } finally {
+    bitmap.close();
+  }
+}
+
+function clearImageState() {
+  imageSelectionId += 1;
+  eventImageInput.value = "";
+  currentImageData = "";
+  imageWasRemoved = false;
+  imageProcessing = Promise.resolve("");
+  imageHint.textContent = DEFAULT_IMAGE_HINT;
+  showImagePreview("");
 }
 
 function resetForm() {
@@ -26,6 +145,7 @@ function resetForm() {
   document.querySelector("#event-id").value = "";
   document.querySelector("#save-event").innerHTML = 'Publicar evento <span aria-hidden="true">→</span>';
   cancelEdit.hidden = true;
+  clearImageState();
 }
 
 function localDateInput(date) {
@@ -49,14 +169,21 @@ function localDateInput(date) {
 async function listEvents() {
   const { db } = services;
   const { collection, getDocs, limit, orderBy, query } = await import("https://www.gstatic.com/firebasejs/11.2.0/firebase-firestore.js");
-  const eventsQuery = query(collection(db, "events"), orderBy("date", "desc"), limit(MAX_ADMIN_EVENTS));
+  const eventsQuery = query(collection(db, "events"), orderBy("date", "desc"), limit(ADMIN_EVENTS_READ_LIMIT));
   const snapshot = await getDocs(eventsQuery);
+  publishedEventCount = snapshot.size;
+  adminEventsLoaded = true;
   const events = snapshot.docs.map((eventDoc) => {
     const data = eventDoc.data();
     if (!data.date?.toDate || typeof data.title !== "string") {
       throw new Error(`El evento ${eventDoc.id} tiene datos incompletos.`);
     }
-    return { id: eventDoc.id, title: data.title, date: data.date.toDate() };
+    return {
+      id: eventDoc.id,
+      title: data.title,
+      date: data.date.toDate(),
+      imageData: typeof data.imageData === "string" ? data.imageData : "",
+    };
   });
   renderAdminEvents(events);
   setStatus("");
@@ -82,6 +209,15 @@ function renderAdminEvents(events) {
     const date = document.createElement("span");
     date.textContent = new Intl.DateTimeFormat("es-CR", { dateStyle: "medium", timeStyle: "short", timeZone: "America/Costa_Rica" }).format(event.date);
     copy.append(title, date);
+
+    if (event.imageData) {
+      const thumbnail = document.createElement("img");
+      thumbnail.className = "admin-event-thumbnail";
+      thumbnail.src = event.imageData;
+      thumbnail.alt = "";
+      thumbnail.loading = "lazy";
+      copy.prepend(thumbnail);
+    }
 
     const actions = document.createElement("div");
     actions.className = "admin-event-actions";
@@ -109,11 +245,27 @@ async function editEvent(id) {
       throw new Error("El evento ya no existe.");
     }
     const data = snapshot.data();
+    if (data.imageData !== undefined && (
+      typeof data.imageData !== "string"
+      || data.imageData.length > MAX_IMAGE_DATA_LENGTH
+      || !data.imageData.startsWith("data:image/jpeg;base64,")
+    )) {
+      throw new Error("La foto guardada tiene un formato inválido.");
+    }
     document.querySelector("#event-id").value = id;
     document.querySelector("#event-title").value = data.title;
     document.querySelector("#event-date").value = localDateInput(data.date.toDate());
     document.querySelector("#event-location").value = data.location || "";
     document.querySelector("#event-description").value = data.description;
+    imageSelectionId += 1;
+    eventImageInput.value = "";
+    imageProcessing = Promise.resolve("");
+    currentImageData = data.imageData || "";
+    imageWasRemoved = false;
+    imageHint.textContent = currentImageData
+      ? "Foto actual. Sube otra para reemplazarla o quítala."
+      : DEFAULT_IMAGE_HINT;
+    showImagePreview(currentImageData);
     saveButton.innerHTML = 'Guardar cambios <span aria-hidden="true">→</span>';
     cancelEdit.hidden = false;
     document.querySelector("#event-title").focus();
@@ -181,6 +333,52 @@ if (!isFirebaseConfigured) {
     });
 }
 
+eventImageInput.addEventListener("change", () => {
+  const file = eventImageInput.files && eventImageInput.files[0];
+  imageSelectionId += 1;
+  const selectionId = imageSelectionId;
+
+  if (!file) {
+    imageProcessing = Promise.resolve("");
+    imageHint.textContent = currentImageData && !imageWasRemoved
+      ? "Foto actual. Sube otra para reemplazarla o quítala."
+      : DEFAULT_IMAGE_HINT;
+    showImagePreview(currentImageData);
+    return;
+  }
+
+  imageHint.textContent = "Optimizando foto…";
+  imageProcessing = compressEventImage(file)
+    .then((imageData) => {
+      if (selectionId !== imageSelectionId) {
+        return "";
+      }
+      imageWasRemoved = false;
+      imageHint.textContent = `Foto optimizada: ${Math.round(imageData.length * 0.75 / 1024)} KB.`;
+      showImagePreview(imageData);
+      return imageData;
+    })
+    .catch((error) => {
+      if (selectionId === imageSelectionId) {
+        eventImageInput.value = "";
+        imageHint.textContent = error.message || "No se pudo optimizar la foto.";
+        setStatus(imageHint.textContent, true);
+        showImagePreview(currentImageData);
+      }
+      return "";
+    });
+});
+
+removeImageButton.addEventListener("click", () => {
+  imageSelectionId += 1;
+  eventImageInput.value = "";
+  imageProcessing = Promise.resolve("");
+  currentImageData = "";
+  imageWasRemoved = true;
+  imageHint.textContent = "La foto se quitará al guardar los cambios.";
+  showImagePreview("");
+});
+
 loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   if (!services) {
@@ -227,10 +425,26 @@ eventForm.addEventListener("submit", async (event) => {
     return;
   }
 
+  const eventId = String(formData.get("eventId"));
+  if (!eventId && !adminEventsLoaded) {
+    setStatus("Espera a que termine de cargar la lista de eventos antes de publicar.", true);
+    return;
+  }
+  if (!eventId && publishedEventCount >= MAX_ADMIN_EVENTS) {
+    setStatus("Ya hay seis publicaciones. Elimina una antes de agregar otra.", true);
+    return;
+  }
+
   saveButton.disabled = true;
   try {
+    const selectedImage = eventImageInput.files && eventImageInput.files[0];
+    const newImageData = selectedImage ? await imageProcessing : "";
+    if (selectedImage && !newImageData) {
+      throw new Error("Espera a que la foto termine de optimizarse o elige otra.");
+    }
+
     const { db } = services;
-    const { collection, doc, serverTimestamp, setDoc, Timestamp, updateDoc } = await import("https://www.gstatic.com/firebasejs/11.2.0/firebase-firestore.js");
+    const { collection, deleteField, doc, serverTimestamp, setDoc, Timestamp, updateDoc } = await import("https://www.gstatic.com/firebasejs/11.2.0/firebase-firestore.js");
     const eventData = {
       title,
       description,
@@ -238,7 +452,12 @@ eventForm.addEventListener("submit", async (event) => {
       date: Timestamp.fromDate(eventDate),
       updatedAt: serverTimestamp(),
     };
-    const eventId = String(formData.get("eventId"));
+    if (newImageData) {
+      eventData.imageData = newImageData;
+    } else if (eventId && imageWasRemoved) {
+      eventData.imageData = deleteField();
+    }
+
     if (eventId) {
       await updateDoc(doc(db, "events", eventId), eventData);
     } else {
@@ -249,7 +468,7 @@ eventForm.addEventListener("submit", async (event) => {
     setStatus(eventId ? "Cambios guardados." : "Evento publicado.");
   } catch (error) {
     console.error("No se pudo guardar el evento.", error);
-    setStatus("No se pudo guardar el evento. Revisa las reglas de Firestore.", true);
+    setStatus(error.message || "No se pudo guardar el evento. Revisa las reglas de Firestore.", true);
   } finally {
     saveButton.disabled = false;
   }
