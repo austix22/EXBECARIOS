@@ -11,6 +11,8 @@ const cancelEdit = document.querySelector("#cancel-edit");
 const saveButton = document.querySelector("#save-event");
 const signoutButton = document.querySelector("#signout-button");
 const MAX_ADMIN_EVENTS = 50;
+const ADMIN_USERNAME = "ADMIN345";
+const ADMIN_EMAIL = "exbecarios.japon.cr@gmail.com";
 let services;
 let authObserver;
 
@@ -190,7 +192,9 @@ loginForm.addEventListener("submit", async (event) => {
   try {
     const { signInWithEmailAndPassword, signOut } = await import("https://www.gstatic.com/firebasejs/11.2.0/firebase-auth.js");
     const formData = new FormData(loginForm);
-    const credential = await signInWithEmailAndPassword(services.auth, formData.get("email"), formData.get("password"));
+    const login = String(formData.get("username")).trim();
+    const email = login.toUpperCase() === ADMIN_USERNAME ? ADMIN_EMAIL : login;
+    const credential = await signInWithEmailAndPassword(services.auth, email, formData.get("password"));
     if (!adminUids.includes(credential.user.uid)) {
       await signOut(services.auth);
       setStatus("Esta cuenta no está autorizada para administrar eventos.", true);

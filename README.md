@@ -11,7 +11,7 @@ Abre la carpeta del proyecto con un servidor estático local (por ejemplo, Live 
 1. Crea un proyecto de Firebase, registra una aplicación web y copia su configuración en `js/firebase-config.js`.
 2. Registra la aplicación en Firebase App Check con reCAPTCHA v3, agrega el dominio donde publicarás el sitio y copia la clave pública del sitio en `appCheckSiteKey`.
 3. Activa **Authentication → Sign-in method → Email/Password** y **Cloud Firestore**.
-4. Crea la cuenta administradora desde **Authentication → Users → Add user**. No habilites un formulario de registro público.
+4. Crea la cuenta administradora desde **Authentication → Users → Add user** usando `exbecarios.japon.cr@gmail.com`. En el panel se puede iniciar sesión con el alias `ADMIN345`; Firebase valida la contraseña de esa cuenta. No habilites un formulario de registro público.
 5. Copia el UID de esa cuenta en `adminUids` dentro de `js/firebase-config.js` y reemplaza `REPLACE_WITH_ADMIN_UID` en `firestore.rules` por el mismo UID.
 6. Publica `firestore.rules` en Firebase Console → Firestore Database → Rules y configura App Check para exigir tokens válidos en Firestore.
 
